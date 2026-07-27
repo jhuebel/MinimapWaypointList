@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480">
+  <defs>
+    <linearGradient id="terrain" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b7a86a"/>
+      <stop offset="0.45" stop-color="#94a15a"/>
+      <stop offset="1" stop-color="#5f7a3e"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c95b8"/>
+      <stop offset="1" stop-color="#4a5f80"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.4" r="0.75">
+      <stop offset="0.6" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.28"/>
+    </radialGradient>
+    <filter id="softshadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- outer frame, matching the minimap's own border style -->
+  <rect x="6" y="6" width="468" height="468" rx="46" fill="url(#frame)"/>
+  <rect x="22" y="22" width="436" height="436" rx="34" fill="url(#terrain)"/>
+
+  <!-- terrain texture: soft land patches -->
+  <g opacity="0.5" fill="#c9bd85">
+    <ellipse cx="120" cy="120" rx="70" ry="46"/>
+    <ellipse cx="360" cy="360" rx="90" ry="56"/>
+  </g>
+  <g opacity="0.35" fill="#3f5a2b">
+    <ellipse cx="340" cy="130" rx="60" ry="34"/>
+    <ellipse cx="110" cy="350" rx="66" ry="40"/>
+  </g>
+  <rect x="22" y="22" width="436" height="436" rx="34" fill="url(#vignette)"/>
+
+  <!-- background waypoint pins (smaller, further away) -->
+  <g filter="url(#softshadow)">
+    <path d="M138 150 C114 150 95 169 95 193 C95 227 138 278 138 278 C138 278 181 227 181 193 C181 169 162 150 138 150 Z"
+          fill="#3f7fd6"/>
+    <circle cx="138" cy="193" r="16" fill="#ffffff" opacity="0.9"/>
+
+    <path d="M356 176 C336 176 320 192 320 212 C320 240 356 282 356 282 C356 282 392 240 392 212 C392 192 376 176 356 176 Z"
+          fill="#e8b23d"/>
+    <circle cx="356" cy="212" r="14" fill="#ffffff" opacity="0.9"/>
+  </g>
+
+  <!-- foreground waypoint pin (the star of the icon) -->
+  <g filter="url(#softshadow)">
+    <path d="M258 210 C222 210 193 239 193 275 C193 325 258 396 258 396 C258 396 323 325 323 275 C323 239 294 210 258 210 Z"
+          fill="#df4f3f"/>
+    <circle cx="258" cy="275" r="30" fill="#ffffff"/>
+    <circle cx="258" cy="275" r="18" fill="#df4f3f"/>
+  </g>
+
+  <!-- direction arrow accent -->
+  <path d="M382 104 L400 158 L382 146 L364 158 Z" fill="#fbe9a8" stroke="#a8791f" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- frame highlight for a bit of polish -->
+  <rect x="6" y="6" width="468" height="468" rx="46" fill="none" stroke="#2e3c52" stroke-width="6" opacity="0.5"/>
+</svg>
