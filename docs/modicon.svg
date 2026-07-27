@@ -26,6 +26,10 @@
       <circle cx="0" cy="0" r="15" fill="#d0453a"/>
       <path d="M0,-14 C2,-19 8,-19 9,-14" fill="none" stroke="#4aa64a" stroke-width="3" stroke-linecap="round"/>
     </g>
+    <!-- the player's own position/facing indicator, distinct from waypoint markers -->
+    <g id="icon-player">
+      <path d="M0,-20 L15,15 L0,5 L-15,15 Z" fill="#f4d03f" stroke="#6b4f0e" stroke-width="3" stroke-linejoin="round"/>
+    </g>
   </defs>
 
   <!-- outer frame -->
@@ -43,6 +47,9 @@
     <use href="#icon-water" transform="translate(175,150) scale(0.4)"/>
     <use href="#icon-tree" transform="translate(255,190) scale(0.4)"/>
     <use href="#icon-apple" transform="translate(345,150) scale(0.4)"/>
+
+    <!-- the player, on the map alongside the waypoints -->
+    <use href="#icon-player" transform="translate(240,105) rotate(20) scale(0.55)"/>
 
     <!-- toggle chip straddling the seam -->
     <rect x="216" y="248" width="48" height="30" rx="7" fill="#2a2521"/>
