@@ -2,7 +2,7 @@
   "Type": "Code",
   "ModID": "minimapwaypointlist",
   "Name": "Minimap Waypoint List",
-  "Version": "1.0.0",
+  "Version": "1.0.1",
   "Side": "Client",
   "Description": "Shows a list of your map markers (waypoints) below the minimap, with a button to show or hide the list. The number of markers shown is configurable in the mod config file.",
   "Authors": [ "jhuebel" ],
