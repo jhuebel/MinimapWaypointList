@@ -12,6 +12,20 @@
     <clipPath id="innerClip">
       <rect x="22" y="22" width="436" height="436" rx="34"/>
     </clipPath>
+
+    <!-- Shared marker icons (centered on origin) so the minimap pips and the
+         list rows below always use exactly the same shapes. -->
+    <g id="icon-tree">
+      <path d="M0,-23 L11,-3 L3,-3 L13,15 L-13,15 L-3,-3 L-11,-3 Z" fill="#4aa64a"/>
+      <rect x="-3" y="15" width="6" height="8" fill="#7a5230"/>
+    </g>
+    <g id="icon-water">
+      <circle cx="0" cy="0" r="15" fill="#3f7fd6"/>
+    </g>
+    <g id="icon-apple">
+      <circle cx="0" cy="0" r="15" fill="#d0453a"/>
+      <path d="M0,-14 C2,-19 8,-19 9,-14" fill="none" stroke="#4aa64a" stroke-width="3" stroke-linecap="round"/>
+    </g>
   </defs>
 
   <!-- outer frame -->
@@ -25,12 +39,10 @@
     <ellipse cx="120" cy="230" rx="80" ry="30" fill="#5c6a2f" opacity="0.45"/>
     <ellipse cx="360" cy="200" rx="70" ry="34" fill="#5c6a2f" opacity="0.4"/>
 
-    <!-- tiny marker pips on the minimap itself -->
-    <circle cx="175" cy="145" r="9" fill="#3f7fd6" stroke="#20304a" stroke-width="2"/>
-    <circle cx="255" cy="185" r="10" fill="#4aa64a" stroke="#1f3a1f" stroke-width="2"/>
-    <circle cx="330" cy="205" r="9" fill="#d0453a" stroke="#5a1712" stroke-width="2"/>
-    <path d="M108 128 L120 116 L132 128 L120 122 Z" fill="#9b59b6" stroke="#4a2557" stroke-width="2"/>
-    <path d="M100 172 L112 164 L108 176 L118 178" fill="none" stroke="#c0392b" stroke-width="4" stroke-linecap="round"/>
+    <!-- tiny marker pips on the minimap itself - same icons as the list below -->
+    <use href="#icon-water" transform="translate(175,150) scale(0.4)"/>
+    <use href="#icon-tree" transform="translate(255,190) scale(0.4)"/>
+    <use href="#icon-apple" transform="translate(345,150) scale(0.4)"/>
 
     <!-- toggle chip straddling the seam -->
     <rect x="216" y="248" width="48" height="30" rx="7" fill="#2a2521"/>
@@ -41,8 +53,7 @@
 
     <!-- row 1: Trees -->
     <g transform="translate(46,286)">
-      <path d="M17 4 L28 24 L20 24 L30 42 L4 42 L14 24 L6 24 Z" fill="#4aa64a"/>
-      <rect x="14" y="42" width="6" height="8" fill="#7a5230"/>
+      <use href="#icon-tree" transform="translate(17,27)"/>
       <text x="46" y="34" fill="#f0ece2" font-size="26">Trees</text>
       <text x="330" y="34" fill="#a9d3e8" font-size="24" text-anchor="end">3m</text>
       <path d="M0,-13 L12,10 L0,4 L-12,10 Z" fill="#e7dfce" transform="translate(372,27) rotate(0)"/>
@@ -50,7 +61,7 @@
 
     <!-- row 2: Water -->
     <g transform="translate(46,340)">
-      <circle cx="17" cy="24" r="15" fill="#3f7fd6"/>
+      <use href="#icon-water" transform="translate(17,24)"/>
       <text x="46" y="32" fill="#f0ece2" font-size="26">Water</text>
       <text x="330" y="32" fill="#a9d3e8" font-size="24" text-anchor="end">31m</text>
       <path d="M0,-13 L12,10 L0,4 L-12,10 Z" fill="#e7dfce" transform="translate(369,25) rotate(-90)"/>
@@ -58,8 +69,7 @@
 
     <!-- row 3: Apples -->
     <g transform="translate(46,394)">
-      <circle cx="18" cy="22" r="15" fill="#d0453a"/>
-      <path d="M18 8 C20 3 26 3 27 8" fill="none" stroke="#4aa64a" stroke-width="3" stroke-linecap="round"/>
+      <use href="#icon-apple" transform="translate(18,22)"/>
       <text x="46" y="32" fill="#f0ece2" font-size="26">Apples</text>
       <text x="330" y="32" fill="#a9d3e8" font-size="24" text-anchor="end">41m</text>
       <path d="M0,-13 L12,10 L0,4 L-12,10 Z" fill="#e7dfce" transform="translate(369,23) rotate(0)"/>
