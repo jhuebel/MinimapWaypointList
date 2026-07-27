@@ -1,60 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" font-family="Verdana, Arial, sans-serif">
   <defs>
-    <linearGradient id="terrain" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#b7a86a"/>
-      <stop offset="0.45" stop-color="#94a15a"/>
-      <stop offset="1" stop-color="#5f7a3e"/>
-    </linearGradient>
     <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#7c95b8"/>
-      <stop offset="1" stop-color="#4a5f80"/>
+      <stop offset="0" stop-color="#7c8fb0"/>
+      <stop offset="1" stop-color="#465476"/>
     </linearGradient>
-    <radialGradient id="vignette" cx="0.5" cy="0.4" r="0.75">
-      <stop offset="0.6" stop-color="#000000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000000" stop-opacity="0.28"/>
-    </radialGradient>
-    <filter id="softshadow" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.45"/>
-    </filter>
+    <linearGradient id="terrain" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c9bd82"/>
+      <stop offset="0.5" stop-color="#a4a85e"/>
+      <stop offset="1" stop-color="#748038"/>
+    </linearGradient>
+    <clipPath id="innerClip">
+      <rect x="22" y="22" width="436" height="436" rx="34"/>
+    </clipPath>
   </defs>
 
-  <!-- outer frame, matching the minimap's own border style -->
+  <!-- outer frame -->
   <rect x="6" y="6" width="468" height="468" rx="46" fill="url(#frame)"/>
-  <rect x="22" y="22" width="436" height="436" rx="34" fill="url(#terrain)"/>
 
-  <!-- terrain texture: soft land patches -->
-  <g opacity="0.5" fill="#c9bd85">
-    <ellipse cx="120" cy="120" rx="70" ry="46"/>
-    <ellipse cx="360" cy="360" rx="90" ry="56"/>
+  <g clip-path="url(#innerClip)">
+    <!-- ===== minimap section ===== -->
+    <rect x="22" y="22" width="436" height="240" fill="url(#terrain)"/>
+    <path d="M22 90 C70 60 110 70 130 105 C145 132 120 165 90 175 C60 185 22 175 22 175 Z" fill="#ded6a0" opacity="0.85"/>
+    <ellipse cx="330" cy="70" rx="70" ry="26" fill="#e4dca8" opacity="0.55"/>
+    <ellipse cx="120" cy="230" rx="80" ry="30" fill="#5c6a2f" opacity="0.45"/>
+    <ellipse cx="360" cy="200" rx="70" ry="34" fill="#5c6a2f" opacity="0.4"/>
+
+    <!-- tiny marker pips on the minimap itself -->
+    <circle cx="175" cy="145" r="9" fill="#3f7fd6" stroke="#20304a" stroke-width="2"/>
+    <circle cx="255" cy="185" r="10" fill="#4aa64a" stroke="#1f3a1f" stroke-width="2"/>
+    <circle cx="330" cy="205" r="9" fill="#d0453a" stroke="#5a1712" stroke-width="2"/>
+    <path d="M108 128 L120 116 L132 128 L120 122 Z" fill="#9b59b6" stroke="#4a2557" stroke-width="2"/>
+    <path d="M100 172 L112 164 L108 176 L118 178" fill="none" stroke="#c0392b" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- toggle chip straddling the seam -->
+    <rect x="216" y="248" width="48" height="30" rx="7" fill="#2a2521"/>
+    <path d="M232 258 L248 258 L240 270 Z" fill="#e7dfce"/>
+
+    <!-- ===== list section ===== -->
+    <rect x="22" y="262" width="436" height="196" fill="#201c19"/>
+
+    <!-- row 1: Trees -->
+    <g transform="translate(46,286)">
+      <path d="M17 4 L28 24 L20 24 L30 42 L4 42 L14 24 L6 24 Z" fill="#4aa64a"/>
+      <rect x="14" y="42" width="6" height="8" fill="#7a5230"/>
+      <text x="46" y="34" fill="#f0ece2" font-size="26">Trees</text>
+      <text x="330" y="34" fill="#a9d3e8" font-size="24" text-anchor="end">3m</text>
+      <path d="M372 18 L386 34 L372 30 L358 34 Z" fill="#e7dfce"/>
+    </g>
+
+    <!-- row 2: Water -->
+    <g transform="translate(46,340)">
+      <circle cx="17" cy="24" r="15" fill="#3f7fd6"/>
+      <text x="46" y="32" fill="#f0ece2" font-size="26">Water</text>
+      <text x="330" y="32" fill="#a9d3e8" font-size="24" text-anchor="end">31m</text>
+      <path d="M356 22 L382 22 L370 10 L382 22 L370 34 Z" fill="none" stroke="#e7dfce" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- row 3: Apples -->
+    <g transform="translate(46,394)">
+      <circle cx="18" cy="22" r="15" fill="#d0453a"/>
+      <path d="M18 8 C20 3 26 3 27 8" fill="none" stroke="#4aa64a" stroke-width="3" stroke-linecap="round"/>
+      <text x="46" y="32" fill="#f0ece2" font-size="26">Apples</text>
+      <text x="330" y="32" fill="#a9d3e8" font-size="24" text-anchor="end">41m</text>
+      <path d="M356 34 L382 34 L370 12 Z" fill="#e7dfce"/>
+    </g>
   </g>
-  <g opacity="0.35" fill="#3f5a2b">
-    <ellipse cx="340" cy="130" rx="60" ry="34"/>
-    <ellipse cx="110" cy="350" rx="66" ry="40"/>
-  </g>
-  <rect x="22" y="22" width="436" height="436" rx="34" fill="url(#vignette)"/>
 
-  <!-- background waypoint pins (smaller, further away) -->
-  <g filter="url(#softshadow)">
-    <path d="M138 150 C114 150 95 169 95 193 C95 227 138 278 138 278 C138 278 181 227 181 193 C181 169 162 150 138 150 Z"
-          fill="#3f7fd6"/>
-    <circle cx="138" cy="193" r="16" fill="#ffffff" opacity="0.9"/>
-
-    <path d="M356 176 C336 176 320 192 320 212 C320 240 356 282 356 282 C356 282 392 240 392 212 C392 192 376 176 356 176 Z"
-          fill="#e8b23d"/>
-    <circle cx="356" cy="212" r="14" fill="#ffffff" opacity="0.9"/>
-  </g>
-
-  <!-- foreground waypoint pin (the star of the icon) -->
-  <g filter="url(#softshadow)">
-    <path d="M258 210 C222 210 193 239 193 275 C193 325 258 396 258 396 C258 396 323 325 323 275 C323 239 294 210 258 210 Z"
-          fill="#df4f3f"/>
-    <circle cx="258" cy="275" r="30" fill="#ffffff"/>
-    <circle cx="258" cy="275" r="18" fill="#df4f3f"/>
-  </g>
-
-  <!-- direction arrow accent -->
-  <path d="M382 104 L400 158 L382 146 L364 158 Z" fill="#fbe9a8" stroke="#a8791f" stroke-width="5" stroke-linejoin="round"/>
-
-  <!-- frame highlight for a bit of polish -->
-  <rect x="6" y="6" width="468" height="468" rx="46" fill="none" stroke="#2e3c52" stroke-width="6" opacity="0.5"/>
+  <rect x="6" y="6" width="468" height="468" rx="46" fill="none" stroke="#2c3650" stroke-width="6" opacity="0.55"/>
 </svg>
