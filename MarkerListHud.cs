@@ -37,6 +37,7 @@ namespace MinimapWaypointList
 
         private bool listExpanded = true;
         private List<string> lastComposedFingerprint = null;
+        private float lastComposedGuiScale = -1f;
 
         /// <summary>
         /// Guid alone isn't enough to know the composed rows are still up to date -
@@ -208,11 +209,13 @@ namespace MinimapWaypointList
                     Composers.Remove("single");
                 }
                 lastComposedFingerprint = null;
+                lastComposedGuiScale = -1f;
                 return;
             }
 
             List<string> fingerprint = Fingerprint(markers);
-            if (SingleComposer == null || lastComposedFingerprint == null || !fingerprint.SequenceEqual(lastComposedFingerprint))
+            bool guiScaleChanged = lastComposedGuiScale >= 0f && lastComposedGuiScale != RuntimeEnv.GUIScale;
+            if (SingleComposer == null || lastComposedFingerprint == null || guiScaleChanged || !fingerprint.SequenceEqual(lastComposedFingerprint))
             {
                 ComposeListGui(markers, minWidth);
             }
@@ -225,6 +228,7 @@ namespace MinimapWaypointList
         private void ComposeListGui(List<Waypoint> markers, double minWidth)
         {
             lastComposedFingerprint = Fingerprint(markers);
+            lastComposedGuiScale = RuntimeEnv.GUIScale;
 
             CairoFont nameFont = CairoFont.WhiteDetailText();
             CairoFont distFont = DistanceFont();
