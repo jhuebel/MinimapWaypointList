@@ -4,6 +4,8 @@ A [Vintage Story](https://www.vintagestory.at/) client mod that lists your nearb
 
 ![Vintage Story](https://img.shields.io/badge/Vintage%20Story-1.20.0%2B-brown)
 
+![Screenshot](docs/screenshot.png)
+
 ## Features
 
 - Lists waypoints currently visible on the minimap, nearest first
