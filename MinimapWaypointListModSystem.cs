@@ -27,7 +27,10 @@ namespace MinimapWaypointList
             MarkerListHud hud = new MarkerListHud(capi, config);
             capi.Gui.RegisterDialog(hud);
 
-            RegisterCommands();
+            // Vanilla registers its own client-side chat commands (e.g. "/map ...")
+            // from level-finalize/hotkey callbacks rather than directly in
+            // StartClientSide - registering that early seems to get lost.
+            capi.Event.LevelFinalize += RegisterCommands;
         }
 
         private void RegisterCommands()

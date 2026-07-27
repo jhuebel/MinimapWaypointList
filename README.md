@@ -28,11 +28,11 @@ The maximum number of waypoints shown is stored in `ModConfig/MinimapWaypointLis
 }
 ```
 
-Editing this file requires a game restart to take effect. To change it without restarting, use the in-game chat command instead:
+Editing this file requires a game restart to take effect. To change it without restarting, use the in-game chat command instead. This is a client-side command, so like other client-only commands it uses a `.` prefix rather than `/`:
 
 ```
-/mwl maxwaypoints        # shows the current value
-/mwl maxwaypoints 15     # sets it to 15 and saves immediately
+.mwl maxwaypoints        # shows the current value
+.mwl maxwaypoints 15     # sets it to 15 and saves immediately
 ```
 
 ## Building from source
