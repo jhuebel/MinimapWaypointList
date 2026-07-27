@@ -38,6 +38,7 @@ namespace MinimapWaypointList
         private bool listExpanded = true;
         private List<string> lastComposedFingerprint = null;
         private float lastComposedGuiScale = -1f;
+        private double lastDistRightEdge;
 
         /// <summary>
         /// Guid alone isn't enough to know the composed rows are still up to date -
@@ -289,7 +290,14 @@ namespace MinimapWaypointList
             double iconX = SidePadding;
             double nameX = iconX + IconColumnWidth + ColumnGap;
             double arrowX = rowWidth - SidePadding - ArrowColumnWidth;
-            double distX = arrowX - ColumnGap - distColWidth;
+
+            // Rather than trust a fixed-width box plus right text-orientation to render
+            // flush against the arrow (which kept clipping the text on the right for
+            // reasons that didn't show up in the math), each row's distance box is
+            // sized tightly to its own text and positioned so its right edge lands on
+            // this same boundary - a plain left-aligned box that's exactly as wide as
+            // its content can't clip, regardless of what was wrong with the other approach.
+            lastDistRightEdge = arrowX - ColumnGap;
 
             // GuiElementStaticText/DynamicText always draw from the top of their own
             // bounds - there's no built-in vertical centering - so we nudge each text
@@ -303,10 +311,11 @@ namespace MinimapWaypointList
                 double rowY = RowsPadding + i * (RowHeight + RowGap);
                 double[] tint = ColorUtil.Hex2Doubles(ColorUtil.Int2Hex(wp.Color));
                 string iconKey = "wp" + StringUtil.UcFirst(string.IsNullOrEmpty(wp.Icon) ? "circle" : wp.Icon);
+                double rowDistWidth = distFont.GetTextExtents(distTexts[i]).Width / RuntimeEnv.GUIScale + 4.0;
 
                 ElementBounds iconBounds = ElementBounds.Fixed(iconX, rowY, IconColumnWidth, RowHeight);
                 ElementBounds nameBounds = ElementBounds.Fixed(nameX, rowY + nameYOffset, nameColWidth, RowHeight);
-                ElementBounds distBounds = ElementBounds.Fixed(distX, rowY + distYOffset, distColWidth, RowHeight);
+                ElementBounds distBounds = ElementBounds.Fixed(lastDistRightEdge - rowDistWidth, rowY + distYOffset, rowDistWidth, RowHeight);
                 ElementBounds arrowBounds = ElementBounds.Fixed(arrowX, rowY, ArrowColumnWidth, RowHeight);
 
                 composer.AddStaticCustomDraw(iconBounds, (ctx, surface, b) =>
@@ -386,8 +395,7 @@ namespace MinimapWaypointList
         private static CairoFont DistanceFont()
         {
             return CairoFont.WhiteDetailText()
-                .WithColor(ColorUtil.Hex2Doubles("#a0a0a0"))
-                .WithOrientation(EnumTextOrientation.Right);
+                .WithColor(ColorUtil.Hex2Doubles("#a0a0a0"));
         }
 
         private string DistanceText(Waypoint wp)
@@ -398,9 +406,24 @@ namespace MinimapWaypointList
 
         private void RefreshDynamicRowContent(List<Waypoint> markers)
         {
+            CairoFont distFont = DistanceFont();
+
             for (int i = 0; i < markers.Count; i++)
             {
-                SingleComposer.GetDynamicText("dist" + i)?.SetNewText(DistanceText(markers[i]));
+                GuiElementDynamicText distEl = SingleComposer.GetDynamicText("dist" + i);
+                if (distEl != null)
+                {
+                    string text = DistanceText(markers[i]);
+                    double width = distFont.GetTextExtents(text).Width / RuntimeEnv.GUIScale + 4.0;
+
+                    // Resize/reposition this row's box to the new text before asking it
+                    // to redraw - forceRedraw because the string itself may be unchanged
+                    // (same rounded distance) while we still want the box refreshed.
+                    distEl.Bounds.fixedWidth = width;
+                    distEl.Bounds.fixedX = lastDistRightEdge - width;
+                    distEl.SetNewText(text, false, true);
+                }
+
                 SingleComposer.GetCustomDraw("arrow" + i)?.Redraw();
             }
         }
