@@ -28,7 +28,7 @@
     </g>
     <!-- the player's own position/facing indicator, distinct from waypoint markers -->
     <g id="icon-player">
-      <path d="M0,-20 L15,15 L0,5 L-15,15 Z" fill="#f4d03f" stroke="#6b4f0e" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M0,-20 L15,15 L0,5 L-15,15 Z" fill="#ffffff" stroke="#4a4a4a" stroke-width="3" stroke-linejoin="round"/>
     </g>
   </defs>
 
