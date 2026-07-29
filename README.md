@@ -35,6 +35,14 @@ Editing this file requires a game restart to take effect. To change it without r
 .mwl maxwaypoints 15     # sets it to 15 and saves immediately
 ```
 
+By default the list widens past the minimap to fit the longest waypoint name in full ("expand"). If you'd rather the list never get wider than the minimap, switch to "truncate" mode - long names are shortened with "..." instead, and hovering one scrolls it so you can read the full name:
+
+```
+.mwl longnames            # shows the current mode
+.mwl longnames expand     # widen the list to fit long names (default)
+.mwl longnames truncate   # keep the list at the minimap's width, shortening long names
+```
+
 ## Building from source
 
 Requires the .NET SDK and a local Vintage Story install.

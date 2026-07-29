@@ -38,7 +38,16 @@ namespace MinimapWaypointList
         private bool listExpanded = true;
         private List<string> lastComposedFingerprint = null;
         private float lastComposedGuiScale = -1f;
+        private string lastComposedLongNamesMode = null;
         private double lastDistRightEdge;
+
+        // "truncate" mode only: which row's name is currently under the mouse (-1 if
+        // none), how far it's scrolled to reveal text past the truncated width, and a
+        // shared text-drawing helper for the custom-drawn name cells.
+        private const double NameScrollPixelsPerSecond = 60.0;
+        private int hoveredNameRow = -1;
+        private double nameScrollOffset;
+        private readonly TextDrawUtil textDrawUtil = new TextDrawUtil();
 
         /// <summary>
         /// Guid alone isn't enough to know the composed rows are still up to date -
@@ -84,6 +93,7 @@ namespace MinimapWaypointList
         {
             UpdateVisibility();
             RepositionEverything();
+            UpdateNameHoverScroll(deltaTime);
             base.OnRenderGUI(deltaTime);
         }
 
@@ -211,12 +221,16 @@ namespace MinimapWaypointList
                 }
                 lastComposedFingerprint = null;
                 lastComposedGuiScale = -1f;
+                lastComposedLongNamesMode = null;
+                hoveredNameRow = -1;
+                nameScrollOffset = 0.0;
                 return;
             }
 
             List<string> fingerprint = Fingerprint(markers);
             bool guiScaleChanged = lastComposedGuiScale >= 0f && lastComposedGuiScale != RuntimeEnv.GUIScale;
-            if (SingleComposer == null || lastComposedFingerprint == null || guiScaleChanged || !fingerprint.SequenceEqual(lastComposedFingerprint))
+            bool longNamesModeChanged = lastComposedLongNamesMode != null && lastComposedLongNamesMode != config.LongNames;
+            if (SingleComposer == null || lastComposedFingerprint == null || guiScaleChanged || longNamesModeChanged || !fingerprint.SequenceEqual(lastComposedFingerprint))
             {
                 ComposeListGui(markers, minWidth);
             }
@@ -230,15 +244,25 @@ namespace MinimapWaypointList
         {
             lastComposedFingerprint = Fingerprint(markers);
             lastComposedGuiScale = RuntimeEnv.GUIScale;
+            lastComposedLongNamesMode = config.LongNames;
+            // Row indices are about to be rebuilt from scratch, so a hover/scroll state
+            // pointing at an old row index wouldn't necessarily even refer to the same
+            // marker anymore.
+            hoveredNameRow = -1;
+            nameScrollOffset = 0.0;
 
+            bool truncateNames = config.LongNames == "truncate";
             CairoFont nameFont = CairoFont.WhiteDetailText();
             CairoFont distFont = DistanceFont();
 
-            // Columns size to whatever the longest name/distance in the current list
-            // actually needs (scaled automatically since GetTextExtents measures with
-            // the same, already-GUI-scaled font used to render), not a fixed guess.
-            // Distance and arrow are fixed-width so they can anchor to the panel's
-            // right edge; only the name column flexes with its own content.
+            // In "expand" mode, columns size to whatever the longest name/distance in
+            // the current list actually needs (scaled automatically since GetTextExtents
+            // measures with the same, already-GUI-scaled font used to render), not a
+            // fixed guess. Distance and arrow are fixed-width so they can anchor to the
+            // panel's right edge; the name column flexes with its own content.
+            // In "truncate" mode the name column instead gets whatever's left over
+            // after everything else is reserved, and individual names get shortened
+            // (see DrawNameCell) to fit rather than growing the panel.
             string[] titles = new string[markers.Count];
             string[] distTexts = new string[markers.Count];
             double nameColWidth = MinNameColumnWidth;
@@ -248,12 +272,15 @@ namespace MinimapWaypointList
                 Waypoint wp = markers[i];
                 titles[i] = string.IsNullOrEmpty(wp.Title) ? "?" : wp.Title;
                 distTexts[i] = DistanceText(wp);
-                // GetTextExtents measures in already-scaled screen pixels, but
-                // ElementBounds.Fixed expects the unscaled reference units it scales
-                // itself - dividing back out is the same correction CairoFont's own
-                // AutoBoxSize applies. Skipping it under-sizes the column (and only
-                // becomes visible enough to wrap text at GUI scales other than 100%).
-                nameColWidth = Math.Max(nameColWidth, nameFont.GetTextExtents(titles[i]).Width / RuntimeEnv.GUIScale + 4.0);
+                if (!truncateNames)
+                {
+                    // GetTextExtents measures in already-scaled screen pixels, but
+                    // ElementBounds.Fixed expects the unscaled reference units it scales
+                    // itself - dividing back out is the same correction CairoFont's own
+                    // AutoBoxSize applies. Skipping it under-sizes the column (and only
+                    // becomes visible enough to wrap text at GUI scales other than 100%).
+                    nameColWidth = Math.Max(nameColWidth, nameFont.GetTextExtents(titles[i]).Width / RuntimeEnv.GUIScale + 4.0);
+                }
             }
 
             // "Fixed" here means it doesn't change based on which distances happen to
@@ -262,6 +289,13 @@ namespace MinimapWaypointList
             // constant 46) isn't guaranteed to fit "9999m" at every GUI scale/font
             // combination, which is what clipped the text on the right.
             double distColWidth = distFont.GetTextExtents("9999m").Width / RuntimeEnv.GUIScale + 4.0;
+
+            if (truncateNames)
+            {
+                double reserved = SidePadding * 2.0 + IconColumnWidth + ColumnGap * 3.0 + distColWidth + ArrowColumnWidth;
+                double available = minWidth / RuntimeEnv.GUIScale - reserved;
+                nameColWidth = Math.Max(MinNameColumnWidth, available);
+            }
 
             double contentWidth = SidePadding * 2 + IconColumnWidth + ColumnGap + nameColWidth + ColumnGap + distColWidth + ColumnGap + ArrowColumnWidth;
             // minWidth (the minimap's live OuterWidth) is an already-scaled absolute
@@ -307,15 +341,30 @@ namespace MinimapWaypointList
 
             for (int i = 0; i < markers.Count; i++)
             {
+                int rowIndex = i;
                 Waypoint wp = markers[i];
+                string title = titles[i];
                 double rowY = RowsPadding + i * (RowHeight + RowGap);
                 double[] tint = ColorUtil.Hex2Doubles(ColorUtil.Int2Hex(wp.Color));
                 string iconKey = "wp" + StringUtil.UcFirst(string.IsNullOrEmpty(wp.Icon) ? "circle" : wp.Icon);
                 double rowDistWidth = distFont.GetTextExtents(distTexts[i]).Width / RuntimeEnv.GUIScale + 4.0;
+                double distX = lastDistRightEdge - rowDistWidth;
+
+                // In "truncate" mode, nameColWidth was sized against the worst-case
+                // distance width ("9999m") so every row lines up on the same grid, but
+                // most distances are shorter than that - reserving the full worst case
+                // left a dead strip of background between the truncated/faded name and
+                // wherever this row's actual (usually narrower) distance text landed.
+                // Letting the name cell claim that reclaimed space per row instead means
+                // the visible/fading text runs right up to just before this row's real
+                // distance text, rather than fading out early into empty space.
+                double nameCellWidth = truncateNames ? Math.Max(MinNameColumnWidth, distX - ColumnGap - nameX) : nameColWidth;
 
                 ElementBounds iconBounds = ElementBounds.Fixed(iconX, rowY, IconColumnWidth, RowHeight);
-                ElementBounds nameBounds = ElementBounds.Fixed(nameX, rowY + nameYOffset, nameColWidth, RowHeight);
-                ElementBounds distBounds = ElementBounds.Fixed(lastDistRightEdge - rowDistWidth, rowY + distYOffset, rowDistWidth, RowHeight);
+                // DrawNameCell centers its own text vertically, so its bounds don't need
+                // the nameYOffset nudge the plain static-text path (below) relies on.
+                ElementBounds nameBounds = ElementBounds.Fixed(nameX, truncateNames ? rowY : rowY + nameYOffset, nameCellWidth, RowHeight);
+                ElementBounds distBounds = ElementBounds.Fixed(distX, rowY + distYOffset, rowDistWidth, RowHeight);
                 ElementBounds arrowBounds = ElementBounds.Fixed(arrowX, rowY, ArrowColumnWidth, RowHeight);
 
                 composer.AddStaticCustomDraw(iconBounds, (ctx, surface, b) =>
@@ -327,7 +376,16 @@ namespace MinimapWaypointList
                     capi.Gui.Icons.DrawIcon(ctx, iconKey, b.drawX + 1.0, b.drawY + 1.0, b.InnerWidth - 2.0, b.InnerHeight - 2.0, tint);
                 });
                 composer.AddDynamicCustomDraw(arrowBounds, (ctx, surface, b) => DrawDirectionArrow(ctx, b, wp), "arrow" + i);
-                composer.AddStaticText(titles[i], nameFont, nameBounds, "name" + i);
+
+                if (truncateNames)
+                {
+                    composer.AddDynamicCustomDraw(nameBounds, (ctx, surface, b) => DrawNameCell(ctx, b, title, rowIndex), "name" + i);
+                }
+                else
+                {
+                    composer.AddStaticText(title, nameFont, nameBounds, "name" + i);
+                }
+
                 composer.AddDynamicText(distTexts[i], distFont, distBounds, "dist" + i);
             }
 
@@ -426,6 +484,111 @@ namespace MinimapWaypointList
 
                 SingleComposer.GetCustomDraw("arrow" + i)?.Redraw();
             }
+        }
+
+        /// <summary>
+        /// "truncate" mode only: tracks whether the mouse is currently over a name cell
+        /// and, if so, scrolls that row's custom-drawn text left until its tail end has
+        /// been revealed. Runs every frame (not the slower content tick) so the mouse
+        /// check and the scroll animation are both responsive.
+        /// </summary>
+        private void UpdateNameHoverScroll(float deltaTime)
+        {
+            // Must check what the panel was actually last composed with, not the live
+            // config value - the setting can change (e.g. via the chat command) up to
+            // 200ms before UpdateListComposer's tick notices and rebuilds the panel to
+            // match, and this runs every frame. Checking the live value let this run
+            // against the still-existing "expand" mode's plain text elements and crash
+            // trying to treat them as the custom-draw ones only "truncate" mode creates.
+            if (SingleComposer == null || lastComposedLongNamesMode != "truncate" || lastComposedFingerprint == null)
+            {
+                if (hoveredNameRow != -1)
+                {
+                    hoveredNameRow = -1;
+                    nameScrollOffset = 0.0;
+                }
+                return;
+            }
+
+            int mouseX = capi.Input.MouseX;
+            int mouseY = capi.Input.MouseY;
+            int newHover = -1;
+            for (int i = 0; i < lastComposedFingerprint.Count; i++)
+            {
+                if (SingleComposer.GetCustomDraw("name" + i)?.Bounds.PointInside(mouseX, mouseY) == true)
+                {
+                    newHover = i;
+                    break;
+                }
+            }
+
+            if (newHover != hoveredNameRow)
+            {
+                int previousHover = hoveredNameRow;
+                hoveredNameRow = newHover;
+                nameScrollOffset = 0.0;
+                if (previousHover >= 0) SingleComposer.GetCustomDraw("name" + previousHover)?.Redraw();
+            }
+
+            if (hoveredNameRow >= 0)
+            {
+                nameScrollOffset += NameScrollPixelsPerSecond * deltaTime;
+                SingleComposer.GetCustomDraw("name" + hoveredNameRow)?.Redraw();
+            }
+        }
+
+        /// <summary>
+        /// Shortens text with a trailing "..." until it fits within maxWidth, dropping
+        /// one character at a time (cheap enough here - only called for the handful of
+        /// rows that don't fit, not every frame).
+        /// </summary>
+        private static string TruncateToFit(CairoFont font, string text, double maxWidth)
+        {
+            const string ellipsis = "...";
+            for (int len = text.Length - 1; len > 0; len--)
+            {
+                string candidate = text.Substring(0, len) + ellipsis;
+                if (font.GetTextExtents(candidate).Width <= maxWidth) return candidate;
+            }
+            return ellipsis;
+        }
+
+        /// <summary>
+        /// Draws a marker name left-aligned in its cell. If it fits, that's all there is
+        /// to it. If it doesn't and the row isn't hovered, it's shortened with a trailing
+        /// "...". If it doesn't and the row *is* hovered, the full name is drawn clipped
+        /// to the cell and scrolled left (see UpdateNameHoverScroll) until the tail end
+        /// has scrolled into view, so hovering a truncated name reveals it.
+        /// </summary>
+        private void DrawNameCell(Context ctx, ElementBounds bounds, string fullName, int rowIndex)
+        {
+            CairoFont font = CairoFont.WhiteDetailText();
+            font.SetupContext(ctx);
+
+            double w = bounds.InnerWidth;
+            double h = bounds.InnerHeight;
+            double y = (h - font.GetFontExtents().Height) / 2.0;
+            double fullWidth = font.GetTextExtents(fullName).Width;
+
+            ctx.Save();
+            ctx.Rectangle(0.0, 0.0, w, h);
+            ctx.Clip();
+
+            if (fullWidth <= w)
+            {
+                textDrawUtil.DrawTextLine(ctx, font, fullName, 0.0, y);
+            }
+            else if (rowIndex == hoveredNameRow)
+            {
+                double offset = Math.Min(nameScrollOffset, fullWidth - w);
+                textDrawUtil.DrawTextLine(ctx, font, fullName, -offset, y);
+            }
+            else
+            {
+                textDrawUtil.DrawTextLine(ctx, font, TruncateToFit(font, fullName, w), 0.0, y);
+            }
+
+            ctx.Restore();
         }
 
         private const double FacingThresholdRadians = 5.0 * Math.PI / 180.0;

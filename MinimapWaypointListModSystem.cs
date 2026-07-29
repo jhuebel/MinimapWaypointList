@@ -41,6 +41,11 @@ namespace MinimapWaypointList
                     .WithDescription("Get or set the maximum number of waypoints shown in the minimap list")
                     .WithArgs(capi.ChatCommands.Parsers.OptionalInt("count", -1))
                     .HandleWith(OnCmdMaxWaypoints)
+                .EndSubCommand()
+                .BeginSubCommand("longnames")
+                    .WithDescription("Get or set how long marker names are handled: \"expand\" (default) widens the list to fit them, \"truncate\" keeps the list at the minimap's width and shortens long names (hover one to scroll and read it)")
+                    .WithArgs(capi.ChatCommands.Parsers.OptionalWordRange("mode", new[] { "expand", "truncate" }))
+                    .HandleWith(OnCmdLongNames)
                 .EndSubCommand();
         }
 
@@ -55,6 +60,18 @@ namespace MinimapWaypointList
             config.MaxMarkersShown = count;
             SaveConfig();
             return TextCommandResult.Success($"Now showing up to {count} waypoint(s) in the minimap list.");
+        }
+
+        private TextCommandResult OnCmdLongNames(TextCommandCallingArgs args)
+        {
+            if (args.Parsers[0].IsMissing)
+            {
+                return TextCommandResult.Success($"Long marker names currently: {config.LongNames}.");
+            }
+
+            config.LongNames = (string)args.Parsers[0].GetValue();
+            SaveConfig();
+            return TextCommandResult.Success($"Long marker names set to: {config.LongNames}.");
         }
 
         private MinimapWaypointListConfig LoadOrCreateConfig()
