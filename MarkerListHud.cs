@@ -36,6 +36,7 @@ namespace MinimapWaypointList
         private readonly MinimapWaypointListConfig config;
 
         private bool listExpanded = true;
+        private bool? lastToggleBottomAnchored = null;
         private List<string> lastComposedFingerprint = null;
         private float lastComposedGuiScale = -1f;
         private string lastComposedLongNamesMode = null;
@@ -200,9 +201,16 @@ namespace MinimapWaypointList
 
             List<Waypoint> markers = GetVisibleMarkers(GetMapElement(minimapDlg));
 
-            if (Composers["toggle"] == null)
+            // Vanilla lets the player cycle the minimap between all four screen
+            // corners, and the list flips to sit above it instead of below whenever
+            // it's docked to a bottom corner (see RepositionList) - so the toggle
+            // icon's arrow direction needs to flip along with it, rather than always
+            // pointing down.
+            EnumDialogArea area = minimapDlg.SingleComposer.Bounds.Alignment;
+            bool bottomAnchored = area == EnumDialogArea.LeftBottom || area == EnumDialogArea.RightBottom;
+            if (Composers["toggle"] == null || lastToggleBottomAnchored != bottomAnchored)
             {
-                ComposeToggleIcon();
+                ComposeToggleIcon(bottomAnchored);
             }
 
             UpdateListComposer(markers, minimapDlg.SingleComposer.Bounds.OuterWidth);
@@ -405,11 +413,15 @@ namespace MinimapWaypointList
         /// <summary>
         /// A small standalone toggle button positioned to straddle the minimap's edge
         /// (the edge facing the list), so it reads as docked onto the minimap itself
-        /// rather than as part of the list panel below/above it. Composed once - its
-        /// content never changes, only its pressed/unpressed look via SetValue.
+        /// rather than as part of the list panel below/above it. Its arrow points
+        /// towards the list (down when the list is below the minimap, up when the
+        /// minimap is docked to a bottom corner and the list sits above it instead) -
+        /// recomposed only when that direction actually changes, not every tick.
         /// </summary>
-        private void ComposeToggleIcon()
+        private void ComposeToggleIcon(bool bottomAnchored)
         {
+            lastToggleBottomAnchored = bottomAnchored;
+
             ElementBounds dialogBounds = ElementStdBounds.AutosizedMainDialog
                 .WithAlignment(EnumDialogArea.None)
                 .WithFixedAlignmentOffset(0.0, 0.0);
@@ -420,9 +432,10 @@ namespace MinimapWaypointList
             ElementBounds iconBounds = ElementBounds.Fixed(0.0, 0.0, ToggleIconSize, ToggleIconSize);
             bgBounds.WithChildren(iconBounds);
 
+            string arrow = bottomAnchored ? "▴" : "▾";
             GuiComposer composer = capi.Gui.CreateCompo("minimapmarkerlist-toggle", dialogBounds)
                 .BeginChildElements(bgBounds)
-                    .AddToggleButton("▾", CairoFont.SmallButtonText(), OnToggleClicked, iconBounds, "toggleicon")
+                    .AddToggleButton(arrow, CairoFont.SmallButtonText(), OnToggleClicked, iconBounds, "toggleicon")
                 .EndChildElements();
 
             // See the matching comment in ComposeListGui: this catches the engine
