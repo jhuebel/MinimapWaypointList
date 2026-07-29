@@ -32,6 +32,7 @@ namespace MinimapWaypointList
         private const double ArrowColumnWidth = 20;
         private const double MinNameColumnWidth = 30;
         private const double ToggleIconSize = 20;
+        private const double ToggleClearance = 4;
 
         private readonly MinimapWaypointListConfig config;
 
@@ -128,8 +129,13 @@ namespace MinimapWaypointList
             if (SingleComposer != null)
             {
                 RepositionList(minimapBounds, area);
-                RepositionCoordinateHud(SingleComposer.Bounds, area);
             }
+
+            // Must run even when our own list isn't showing (collapsed, or no markers
+            // visible right now) - otherwise, once the coordinate HUD had been pushed
+            // down to make room for the list, it would stay pushed down after the list
+            // disappeared instead of moving back up against the minimap.
+            RepositionCoordinateHud(SingleComposer?.Bounds ?? minimapBounds, SingleComposer == null, area);
         }
 
         private GuiDialogWorldMap GetMinimapDialog()
@@ -653,6 +659,18 @@ namespace MinimapWaypointList
         }
 
         /// <summary>
+        /// The toggle icon straddles the minimap's edge, centered on it (see
+        /// RepositionIcon), so it pokes out past that edge by half its own height -
+        /// anything docked past that same edge (the list, or the coordinate HUD when
+        /// our list isn't showing) needs to clear that protrusion, plus a little
+        /// visual breathing room, rather than just the vanilla screen-edge padding.
+        /// </summary>
+        private static double EdgeClearance()
+        {
+            return GuiElement.scaled(ToggleIconSize) / 2.0 + GuiElement.scaled(ToggleClearance);
+        }
+
+        /// <summary>
         /// Stacks the row list directly against the minimap's outer edge, on whichever
         /// side faces away from the screen corner the minimap is currently anchored to.
         /// Horizontally, the edge of the list nearer the screen's edge is kept flush
@@ -665,7 +683,7 @@ namespace MinimapWaypointList
             ElementBounds ownBounds = SingleComposer.Bounds;
             bool bottomAnchored = area == EnumDialogArea.LeftBottom || area == EnumDialogArea.RightBottom;
             bool rightAnchored = area == EnumDialogArea.RightTop || area == EnumDialogArea.RightBottom;
-            double gap = GuiElement.scaled(GuiStyle.DialogToScreenPadding);
+            double gap = EdgeClearance();
 
             double targetAbsY = bottomAnchored
                 ? minimapBounds.absY - gap - ownBounds.OuterHeight
@@ -703,17 +721,21 @@ namespace MinimapWaypointList
         /// Vanilla's coordinate HUD is hardcoded to the top-right corner and stacks
         /// itself directly under whatever else it finds there (normally the minimap).
         /// To put it below our list instead, we push it down ourselves whenever our
-        /// list is showing and the minimap is in that same corner.
+        /// list is showing and the minimap is in that same corner. When our list isn't
+        /// showing, referenceBounds is the minimap's own bounds instead - in that case
+        /// the coordinate HUD is docked directly below the minimap, same as the list
+        /// would be, so it needs the same toggle-icon clearance the list uses rather
+        /// than just the vanilla screen-edge padding.
         /// </summary>
-        private void RepositionCoordinateHud(ElementBounds listBounds, EnumDialogArea area)
+        private void RepositionCoordinateHud(ElementBounds referenceBounds, bool referenceIsMinimap, EnumDialogArea area)
         {
             if (area != EnumDialogArea.RightTop) return;
 
             ElementBounds coordBounds = capi.OpenedGuis.OfType<HudElementCoordinates>().FirstOrDefault()?.SingleComposer?.Bounds;
             if (coordBounds == null) return;
 
-            double gap = GuiElement.scaled(GuiStyle.DialogToScreenPadding);
-            double targetAbsY = listBounds.absY + listBounds.OuterHeight + gap;
+            double gap = referenceIsMinimap ? EdgeClearance() : GuiElement.scaled(GuiStyle.DialogToScreenPadding);
+            double targetAbsY = referenceBounds.absY + referenceBounds.OuterHeight + gap;
 
             coordBounds.absOffsetY += targetAbsY - coordBounds.absY;
         }
