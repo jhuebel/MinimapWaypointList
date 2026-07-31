@@ -423,6 +423,10 @@ namespace MinimapWaypointList
         /// towards the list (down when the list is below the minimap, up when the
         /// minimap is docked to a bottom corner and the list sits above it instead) -
         /// recomposed only when that direction actually changes, not every tick.
+        /// The arrow itself is drawn as a small Cairo triangle rather than a text
+        /// glyph (the button label is left empty) - a "▾"/"▴" character depends on
+        /// the active font actually containing that glyph, which isn't guaranteed
+        /// for custom/resource-pack fonts and left the button blank for some players.
         /// </summary>
         private void ComposeToggleIcon(bool bottomAnchored)
         {
@@ -436,12 +440,17 @@ namespace MinimapWaypointList
             bgBounds.BothSizing = ElementSizing.FitToChildren;
 
             ElementBounds iconBounds = ElementBounds.Fixed(0.0, 0.0, ToggleIconSize, ToggleIconSize);
-            bgBounds.WithChildren(iconBounds);
+            ElementBounds arrowBounds = ElementBounds.Fixed(0.0, 0.0, ToggleIconSize, ToggleIconSize);
+            bgBounds.WithChildren(iconBounds, arrowBounds);
 
-            string arrow = bottomAnchored ? "▴" : "▾";
             GuiComposer composer = capi.Gui.CreateCompo("minimapmarkerlist-toggle", dialogBounds)
                 .BeginChildElements(bgBounds)
-                    .AddToggleButton(arrow, CairoFont.SmallButtonText(), OnToggleClicked, iconBounds, "toggleicon")
+                    .AddToggleButton("", CairoFont.SmallButtonText(), OnToggleClicked, iconBounds, "toggleicon")
+                    // Must be dynamic, not static - static custom-draw content gets
+                    // baked into one shared background bitmap that's drawn *before*
+                    // interactive elements like this button, so it rendered completely
+                    // hidden underneath the button's own surface.
+                    .AddDynamicCustomDraw(arrowBounds, (ctx, surface, b) => DrawToggleArrow(ctx, b, bottomAnchored), "togglearrow")
                 .EndChildElements();
 
             // See the matching comment in ComposeListGui: this catches the engine
@@ -451,6 +460,29 @@ namespace MinimapWaypointList
 
             Composers["toggle"] = composer;
             composer.GetToggleButton("toggleicon")?.SetValue(listExpanded);
+        }
+
+        /// <summary>
+        /// Draws the toggle icon's direction arrow directly (see ComposeToggleIcon for
+        /// why this isn't just a text glyph): a small filled triangle pointing down
+        /// (towards a list below) or up (towards a list above), centered in the button.
+        /// </summary>
+        private static void DrawToggleArrow(Context ctx, ElementBounds bounds, bool pointUp)
+        {
+            double cx = bounds.InnerWidth / 2.0;
+            double cy = bounds.InnerHeight / 2.0;
+            double halfWidth = Math.Min(bounds.InnerWidth, bounds.InnerHeight) * 0.28;
+            double tipOffset = halfWidth * 1.2;
+            double direction = pointUp ? -1.0 : 1.0;
+
+            ctx.Save();
+            ctx.MoveTo(cx - halfWidth, cy - direction * tipOffset * 0.5);
+            ctx.LineTo(cx + halfWidth, cy - direction * tipOffset * 0.5);
+            ctx.LineTo(cx, cy + direction * tipOffset * 0.5);
+            ctx.ClosePath();
+            ctx.SetSourceRGBA(1.0, 1.0, 1.0, 0.9);
+            ctx.Fill();
+            ctx.Restore();
         }
 
         private void OnToggleClicked(bool nowExpanded)
